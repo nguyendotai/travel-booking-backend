@@ -19,7 +19,7 @@ exports.getCategoryById = async (req, res) => {
 
 exports.createCategory = async (req, res) => {
     try {
-        const { name,description , type, startDate, endDate } = req.body;
+        const { name, description , type, startDate, endDate } = req.body;
 
         if (!name || name.trim() === "") {
             return res.status(400).json({ error: "Tên danh mục là bắt buộc" });

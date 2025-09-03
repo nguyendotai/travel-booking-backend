@@ -6,6 +6,14 @@ const Hotel = sequelize.define("Hotel", {
   name: DataTypes.STRING,
   address: DataTypes.STRING,
   stars: DataTypes.INTEGER,
+  location_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: "Locations",
+      key: "id"
+    }
+  }
 });
 
 module.exports = Hotel;

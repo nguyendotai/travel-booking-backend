@@ -7,6 +7,8 @@ const authRoutes = require("./routes/authRoutes");
 const tourRoutes = require("./routes/tourRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const locationRoutes = require("./routes/locationRoutes");
+const hotelRoutes = require("./routes/hotelRoutes");
+const destinationRoutes = require("./routes/destinationRoutes");
 // const bookingRoutes = require("./routes/bookingRoutes");
 // const paymentRoutes = require("./routes/paymentRoutes");
 
@@ -18,6 +20,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/tours", tourRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/locations", locationRoutes);
+app.use("/api/hotels", hotelRoutes);
+app.use("/api/destinations", destinationRoutes);
 // app.use("/api/bookings", bookingRoutes);
 // app.use("/api/payments", paymentRoutes);
 

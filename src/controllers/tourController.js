@@ -2,11 +2,12 @@
 const Tour = require("../models/Tour");
 const Category = require("../models/Category");
 const Location = require("../models/Location")
+const Hotel = require("../models/Hotel")
 
 exports.getAllTours = async (req, res) => {
   try {
     const tours = await Tour.findAll({
-      include: [{ model: Category }, { model: Location }
+      include: [{ model: Category }, { model: Location }, { model: Hotel }
       ] // load cả danh mục
     });
     res.json(tours);
@@ -30,10 +31,10 @@ exports.createTour = async (req, res) => {
     const {
       name, description, price, startDate, endDate,
       duration, capacity, status,
-      fixedCategoryId, optionalCategoryIds, locationIds
+      fixedCategoryId, optionalCategoryIds,
+      locationIds, hotelIds
     } = req.body;
 
-    // Kiểm tra danh mục cố định
     const fixedCategory = await Category.findOne({
       where: { id: fixedCategoryId, type: "fixed" }
     });
@@ -41,7 +42,54 @@ exports.createTour = async (req, res) => {
       return res.status(400).json({ error: "Danh mục cố định không hợp lệ" });
     }
 
-    // Tạo tour
+    let validLocationIds = [];
+    if (locationIds && locationIds.length > 0) {
+      const locations = await Location.findAll({
+        where: {
+          id: locationIds,
+          fixedCategoryId: fixedCategory.id
+        }
+      });
+
+      if (locations.length !== locationIds.length) {
+        return res.status(400).json({ error: "Một hoặc nhiều location không thuộc danh mục cố định" });
+      }
+
+      validLocationIds = locations.map(l => l.id);
+    }
+
+    let validHotelIds = [];
+    if (hotelIds && hotelIds.length > 0) {
+      const hotels = await Hotel.findAll({
+        where: {
+          id: hotelIds,
+          location_id: validLocationIds
+        }
+      });
+
+      if (hotels.length !== hotelIds.length) {
+        return res.status(400).json({ error: "Một hoặc nhiều hotel không thuộc location được chọn" });
+      }
+
+      validHotelIds = hotels.map(h => h.id);
+    }
+
+    let validDestinationIds = [];
+    if (destinationIds && destinationIds.length > 0) {
+      const destinations = await Destination.findAll({
+        where: {
+          id: destinationIds,
+          location_id: validLocationIds  
+        }
+      });
+
+      if (destinations.length !== destinationIds.length) {
+        return res.status(400).json({ error: "Một hoặc nhiều destination không thuộc location được chọn" });
+      }
+
+      validDestinationIds = destinations.map(d => d.id);
+    }
+
     const tour = await Tour.create({
       name,
       description,
@@ -51,49 +99,45 @@ exports.createTour = async (req, res) => {
       duration,
       capacity,
       status,
-      fixedCategoryId: fixedCategory.id   // thêm dòng này
+      fixedCategoryId: fixedCategory.id
     });
 
-
-    // Gắn danh mục cố định
-    await tour.addCategory(fixedCategory, { through: { type: 'fixed' } });
-
-    // Nếu có danh mục tùy chọn
+    await tour.addCategory(fixedCategory, { through: { type: "fixed" } });
     if (optionalCategoryIds && optionalCategoryIds.length > 0) {
       const optionalCategories = await Category.findAll({
         where: { id: optionalCategoryIds, type: "optional" }
       });
-
-      // gắn từng category với type là 'optional'
       for (const cat of optionalCategories) {
-        await tour.addCategory(cat, { through: { type: 'optional' } });
+        await tour.addCategory(cat, { through: { type: "optional" } });
       }
     }
 
-    if (locationIds && locationIds.length > 0) {
-      await tour.setLocations(locationIds);
+    if (validDestinationIds.length > 0) {
+      await tour.setDestinations(validDestinationIds);
     }
+    if (validLocationIds.length > 0) await tour.setLocations(validLocationIds);
+    if (validHotelIds.length > 0) await tour.setHotels(validHotelIds);
 
-    // Lấy lại tour kèm danh mục
+    // 7. Lấy lại tour với quan hệ đầy đủ
     const newTour = await Tour.findByPk(tour.id, {
       include: [
-        { model: Category, through: { attributes: ['type'] } },
-        { model: Location }
+        { model: Category, through: { attributes: ["type"] } },
+        { model: Location },
+        { model: Hotel }
       ]
     });
 
     res.status(201).json({
       ...newTour.toJSON(),
-      fixedCategories: newTour.Categories.filter(c => c.CategoryTour.type === 'fixed'),
-      optionalCategories: newTour.Categories.filter(c => c.CategoryTour.type === 'optional')
+      fixedCategories: newTour.Categories.filter(c => c.CategoryTour.type === "fixed"),
+      optionalCategories: newTour.Categories.filter(c => c.CategoryTour.type === "optional")
     });
-
-
 
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
 exports.updateTour = async (req, res) => {

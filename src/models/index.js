@@ -8,6 +8,7 @@ const Category = require("./Category");
 const CategoryTour = require("./CategoryTour");
 const LocationTour = require("./LocationTour");
 const HotelTour = require("./HotelTour")
+const Destination = require("./Destination")
 const Booking = require("./Booking");
 const Payment = require("./Payment");
 const Review = require("./Review");
@@ -58,8 +59,21 @@ Tour.belongsToMany(Category, { through: 'CategoryTour', foreignKey: "tour_id" })
 Location.belongsToMany(Tour, { through: 'LocationTour', foreignKey: "location_id" });
 Tour.belongsToMany(Location, { through: 'LocationTour', foreignKey: "tour_id" });
 
-Location.belongsToMany(Tour, { through: HotelTour, foreignKey: "hotel_id" });
-Tour.belongsToMany(Hotel, { through: HotelTour, foreignKey: "tour_id" });
+Hotel.belongsToMany(Tour, { through: 'HotelTour', foreignKey: "hotel_id" });
+Tour.belongsToMany(Hotel, { through: 'HotelTour', foreignKey: "tour_id" });
+
+Location.hasMany(Hotel, { foreignKey: "location_id" });
+Hotel.belongsTo(Location, { foreignKey: "location_id" });
+
+Location.hasMany(Destination, { foreignKey: "location_id" });
+Destination.belongsTo(Location, { foreignKey: "location_id" });
+
+Category.hasMany(Location, { foreignKey: "fixedCategoryId" });
+Location.belongsTo(Category, { foreignKey: "fixedCategoryId", as: "fixedCategory" });
+
+// Tour có thể đi nhiều điểm đến
+Destination.belongsToMany(Tour, { through: "DestinationTour", foreignKey: "destination_id" });
+Tour.belongsToMany(Destination, { through: "DestinationTour", foreignKey: "tour_id" });
 
 Tour.hasMany(TourSchedule);
 TourSchedule.belongsTo(Tour);
@@ -119,5 +133,6 @@ module.exports = {
     Transport,
     Hotel,
     Room,
-    CategoryTour
+    CategoryTour,
+    Destination
 };
