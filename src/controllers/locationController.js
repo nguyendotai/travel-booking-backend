@@ -4,16 +4,12 @@ const Category = require("../models/Category");
 // Lấy tất cả location, có thể lọc theo fixedCategoryId
 exports.getAllLocation = async (req, res) => {
     try {
-        const { categoryId } = req.query; // optional: ?categoryId=1
-        const where = categoryId ? { fixedCategoryId: categoryId } : {};
 
-        const locations = await Location.findAll({
-            where,
-            include: [
-                { model: Category, as: "fixedCategory", attributes: ["id", "name", "type"] }
-            ]
+        const locations = await Location.findAll();
+        res.json({
+            success: true,
+            data: locations,
         });
-        res.json(locations);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -22,19 +18,14 @@ exports.getAllLocation = async (req, res) => {
 // Tạo Location mới, bắt buộc có fixedCategoryId
 exports.createLocation = async (req, res) => {
     try {
-        const { name, country, description, startDate, endDate, fixedCategoryId } = req.body;
+        const { name, country, description, status, fixedCategoryId } = req.body;
 
         if (!name || name.trim() === "") {
             return res.status(400).json({ error: "Tên địa điểm là bắt buộc" });
         }
 
         if (!fixedCategoryId) {
-            return res.status(400).json({ error: "Fixed Category là bắt buộc" });
-        }
-
-        const category = await Category.findByPk(fixedCategoryId);
-        if (!category || category.type !== "fixed") {
-            return res.status(400).json({ error: "Danh mục không hợp lệ hoặc không phải fixed" });
+            return res.status(400).json({ error: "fixedCategoryId là bắt buộc" });
         }
 
         const existing = await Location.findOne({ where: { name } });
@@ -46,9 +37,8 @@ exports.createLocation = async (req, res) => {
             name: name.trim(),
             country: country?.trim() || null,
             description: description?.trim() || null,
-            startDate: startDate || null,
-            endDate: endDate || null,
-            fixedCategoryId
+            status: status ?? true,
+            fixedCategoryId: Number(fixedCategoryId),
         });
 
         res.status(201).json({
@@ -61,12 +51,10 @@ exports.createLocation = async (req, res) => {
     }
 }
 
-// Lấy location theo id, kèm thông tin fixed category
+// Lấy location theo id
 exports.getLocationById = async (req, res) => {
     try {
-        const location = await Location.findByPk(req.params.id, {
-            include: [{ model: Category, as: "fixedCategory", attributes: ["id", "name", "type"] }]
-        });
+        const location = await Location.findByPk(req.params.id);
         if (!location) return res.status(404).json({ error: "Không có địa điểm" });
         res.json(location);
     } catch (err) {
@@ -74,19 +62,40 @@ exports.getLocationById = async (req, res) => {
     }
 }
 
+// Lấy location theo slug fixed category
+exports.getLocationsByFixedCategory = async (req, res) => {
+    try {
+        const { slug } = req.params;
+
+        // Tìm category theo slug và type = fixed
+        const category = await Category.findOne({
+            where: { slug, type: "fixed" }
+        });
+
+        if (!category) {
+            return res.status(404).json({ error: "Danh mục cố định không tồn tại" });
+        }
+
+        // Lấy danh sách location thuộc fixedCategoryId đó
+        const locations = await Location.findAll({
+            where: { fixedCategoryId: category.id }
+        });
+
+        res.json({
+            success: true,
+            data: locations,
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+
 // Cập nhật location
 exports.updateLocation = async (req, res) => {
     try {
         const location = await Location.findByPk(req.params.id);
         if (!location) return res.status(404).json({ error: "Không có địa điểm" });
-
-        const { fixedCategoryId } = req.body;
-        if (fixedCategoryId) {
-            const category = await Category.findByPk(fixedCategoryId);
-            if (!category || category.type !== "fixed") {
-                return res.status(400).json({ error: "Danh mục không hợp lệ hoặc không phải fixed" });
-            }
-        }
 
         await location.update(req.body);
         res.json(location);

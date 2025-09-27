@@ -2,10 +2,11 @@ const { DataTypes } = require("sequelize");
 const sequelize = require("../config/db");
 
 const Location = sequelize.define("Location", {
-  id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-  name: DataTypes.STRING,
-  country: DataTypes.STRING,
-  description: DataTypes.TEXT,
-});
+  id: { type: DataTypes.BIGINT, autoIncrement: true, primaryKey: true },
+  name: { type: DataTypes.STRING(150), allowNull: false },
+  country: { type: DataTypes.STRING(100) },
+  description: { type: DataTypes.TEXT },
+  status: { type: DataTypes.BOOLEAN },
+}, { timestamps: true });
 
 module.exports = Location;

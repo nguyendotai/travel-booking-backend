@@ -1,138 +1,105 @@
 const { Sequelize } = require("sequelize");
 const sequelize = require("../config/db");
 
-// Require tất cả model
+// Require all models
 const User = require("./User");
-const Tour = require("./Tour");
 const Category = require("./Category");
-const CategoryTour = require("./CategoryTour");
-const LocationTour = require("./LocationTour");
-const HotelTour = require("./HotelTour")
-const Destination = require("./Destination")
+const Location = require("./Location");
+const Hotel = require("./Hotel");
+const HotelLocation = require("./HotelLocation");
+const Destination = require("./Destination");
+const Tour = require("./Tour");
+const TourCategory = require("./TourCategory");
+const TourDestination = require("./TourDestination");
 const Booking = require("./Booking");
 const Payment = require("./Payment");
 const Review = require("./Review");
-const Wishlist = require("./Wishlist");    
-const Notification = require("./Notification");
+const Wishlist = require("./Wishlist");
 const Invoice = require("./Invoice");
-const Complaint = require("./Complaint");
-const AdminLog = require("./AdminLog");
-const Location = require("./Location");
-const TourSchedule = require("./TourSchedule");
-const Guide = require("./Guide");
-const TourGuide = require("./TourGuide");
-const Document = require("./Document");
-const Promotion = require("./Promotion");
-const Transport = require("./Transport");
-const Hotel = require("./Hotel");
-const Room = require("./Room");
+const Notification = require("./Notification");
 
-// --- Quan hệ ---
-// User
-User.hasMany(Booking);
-Booking.belongsTo(User);
+// associations.js (hoặc ngay trong model index)
+Hotel.belongsToMany(Location, {
+  through: "hotellocations",
+  foreignKey: "hotel_id",
+  otherKey: "location_id",
+  as: "locations"   // <- alias bắt buộc
+});
 
-User.hasMany(Review);
-Review.belongsTo(User);
+Location.belongsToMany(Hotel, {
+  through: "hotellocations",
+  foreignKey: "location_id",
+  otherKey: "hotel_id",
+  as: "hotels"
+});
 
-User.hasMany(Wishlist);
-Wishlist.belongsTo(User);
+Tour.belongsTo(Location, { foreignKey: "location_id" });
+Location.hasMany(Tour, { foreignKey: "location_id" });
 
-User.hasMany(Payment);
-Payment.belongsTo(User);
-
-User.hasMany(Notification);
-Notification.belongsTo(User);
-
-User.hasMany(Invoice);
-Invoice.belongsTo(User);
-
-User.hasMany(Complaint);
-Complaint.belongsTo(User);
-
-User.hasMany(AdminLog);
-AdminLog.belongsTo(User);
-
-Category.belongsToMany(Tour, { through: 'CategoryTour', foreignKey: "category_id" });
-Tour.belongsToMany(Category, { through: 'CategoryTour', foreignKey: "tour_id" });
-
-Location.belongsToMany(Tour, { through: 'LocationTour', foreignKey: "location_id" });
-Tour.belongsToMany(Location, { through: 'LocationTour', foreignKey: "tour_id" });
-
-Hotel.belongsToMany(Tour, { through: 'HotelTour', foreignKey: "hotel_id" });
-Tour.belongsToMany(Hotel, { through: 'HotelTour', foreignKey: "tour_id" });
-
-Location.hasMany(Hotel, { foreignKey: "location_id" });
-Hotel.belongsTo(Location, { foreignKey: "location_id" });
 
 Location.hasMany(Destination, { foreignKey: "location_id" });
 Destination.belongsTo(Location, { foreignKey: "location_id" });
 
-Category.hasMany(Location, { foreignKey: "fixedCategoryId" });
 Location.belongsTo(Category, { foreignKey: "fixedCategoryId", as: "fixedCategory" });
+Category.hasMany(Location, { foreignKey: "fixedCategoryId", as: "locations" });
 
-// Tour có thể đi nhiều điểm đến
-Destination.belongsToMany(Tour, { through: "DestinationTour", foreignKey: "destination_id" });
-Tour.belongsToMany(Destination, { through: "DestinationTour", foreignKey: "tour_id" });
+Tour.belongsTo(Hotel, { foreignKey: "hotel_id" });
+Hotel.hasMany(Tour, { foreignKey: "hotel_id" });
 
-Tour.hasMany(TourSchedule);
-TourSchedule.belongsTo(Tour);
+// Tour - Fixed Category (1-1)
+Tour.belongsTo(Category, { foreignKey: "fixedCategoryId", as: "fixedCategory" });
+Category.hasMany(Tour, { foreignKey: "fixedCategoryId", as: "toursWithFixedCategory" });
 
-Tour.hasMany(Booking);
-Booking.belongsTo(Tour);
+// Tour - Optional Category (N-N)
+Tour.belongsToMany(Category, { through: TourCategory, foreignKey: "tour_id", as: "optionalCategories" });
+Category.belongsToMany(Tour, { through: TourCategory, foreignKey: "category_id" });
 
-Tour.hasMany(Review);
-Review.belongsTo(Tour);
+// Tour - Destination (N-N)
+Tour.belongsToMany(Destination, { through: TourDestination, foreignKey: "tour_id" });
+Destination.belongsToMany(Tour, { through: TourDestination, foreignKey: "destination_id" });
 
-Tour.hasMany(Wishlist);
-Wishlist.belongsTo(Tour);
+// Booking
+User.hasMany(Booking, { foreignKey: "user_id" });
+Booking.belongsTo(User, { foreignKey: "user_id" });
+Tour.hasMany(Booking, { foreignKey: "tour_id" });
+Booking.belongsTo(Tour, { foreignKey: "tour_id" });
 
-Tour.belongsToMany(Guide, { through: TourGuide });
-Guide.belongsToMany(Tour, { through: TourGuide });
+// Payment
+Booking.hasOne(Payment, { foreignKey: "booking_id" });
+Payment.belongsTo(Booking, { foreignKey: "booking_id" });
 
-Tour.hasMany(Document);
-Document.belongsTo(Tour);
+// Review
+User.hasMany(Review, { foreignKey: "user_id" });
+Review.belongsTo(User, { foreignKey: "user_id" });
+Tour.hasMany(Review, { foreignKey: "tour_id" });
+Review.belongsTo(Tour, { foreignKey: "tour_id" });
 
-// Booking -> Payment & Invoice
-Booking.hasMany(Payment);
-Payment.belongsTo(Booking);
+// Wishlist
+User.belongsToMany(Tour, { through: Wishlist, foreignKey: "user_id" });
+Tour.belongsToMany(User, { through: Wishlist, foreignKey: "tour_id" });
 
-Booking.hasOne(Invoice);
-Invoice.belongsTo(Booking);
+// Invoice
+Booking.hasOne(Invoice, { foreignKey: "booking_id" });
+Invoice.belongsTo(Booking, { foreignKey: "booking_id" });
 
-// Promotion
-Promotion.hasMany(Booking);
-Booking.belongsTo(Promotion);
-
-// Transport & Hotel
-Transport.hasMany(Tour);
-Tour.belongsTo(Transport);
-
-Hotel.hasMany(Room);
-Room.belongsTo(Hotel);
+// Notification
+User.hasMany(Notification, { foreignKey: "user_id" });
+Notification.belongsTo(User, { foreignKey: "user_id" });
 
 module.exports = {
-    sequelize,
-    User,
-    Tour,
-    Booking,
-    Payment,
-    Category,
-    Review,
-    Wishlist,
-    Notification,
-    Invoice,
-    Complaint,
-    AdminLog,
-    Location,
-    TourSchedule,
-    Guide,
-    TourGuide,
-    Document,
-    Promotion,
-    Transport,
-    Hotel,
-    Room,
-    CategoryTour,
-    Destination
+  sequelize,
+  User,
+  Category,
+  Location,
+  Hotel,
+  Destination,
+  Tour,
+  TourCategory,
+  TourDestination,
+  Booking,
+  Payment,
+  Review,
+  Wishlist,
+  Invoice,
+  Notification,
 };

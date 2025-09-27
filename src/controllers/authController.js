@@ -4,7 +4,7 @@ const User = require("../models/User");
 
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, confirmPassword } = req.body;
+    const { name, email, password, confirmPassword, phone } = req.body;
 
     if (password !== confirmPassword) {
       return res.status(400).json({ error: "Mật khẩu không khớp nhau!" });
@@ -16,7 +16,7 @@ exports.register = async (req, res) => {
     }
 
     const hashed = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: hashed });
+    const user = await User.create({ name, email, password: hashed, phone });
     res.json(user);
   } catch (err) {
     res.status(500).json({ error: err.message });

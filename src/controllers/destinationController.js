@@ -1,5 +1,6 @@
 const Destination = require("../models/Destination");
 const Location = require("../models/Location");
+const Category = require("../models/Category");
 const fs = require("fs");
 const path = require("path");
 
@@ -7,9 +8,19 @@ const path = require("path");
 exports.getAllDestination = async (req, res) => {
   try {
     const destinations = await Destination.findAll({
-      include: [{ model: Location, attributes: ["id", "name"] }]
+      include: [{ model: Location, attributes: ["id", "name"] }],
+      order: [["createdAt", "DESC"]],
     });
-    res.json(destinations);
+
+    const result = destinations.map((d) => {
+      const json = d.toJSON();
+      return {
+        ...json,
+        status: json.status ? 1 : 0,
+      };
+    });
+
+    res.json({ success: true, data: result });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -27,9 +38,52 @@ exports.getDestinationById = async (req, res) => {
       return res.status(404).json({ error: "Destination không tồn tại" });
     }
 
-    res.json(destination);
+    res.json({ success: true, data: destination });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getDestinationsByFixedCategory = async (req, res) => {
+  try {
+    const { type } = req.params; // "domestic" | "international"
+
+    // Map từ param sang Category.name trong DB
+    const categoryMap = {
+      domestic: "du lịch trong nước",
+      international: "du lịch quốc tế",
+    };
+
+    const categoryName = categoryMap[type];
+    if (!categoryName) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Loại category không hợp lệ" });
+    }
+
+    const destinations = await Destination.findAll({
+      include: [
+        {
+          model: Location,
+          attributes: ["id", "name"],
+          include: [
+            {
+              model: Category,
+              as: "fixedCategory",
+              attributes: ["id", "name", "type"],
+              where: { type: "fixed", name: categoryName },
+              required: true,
+            },
+          ],
+          required: true,
+        },
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+
+    res.json({ success: true, data: destinations });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -37,10 +91,12 @@ exports.getDestinationById = async (req, res) => {
 // Thêm điểm đến mới
 exports.createDestination = async (req, res) => {
   try {
-    const { name, description, location_id } = req.body;
+    const { name, description, location_id, status } = req.body;
 
-    if (!name || name.trim() === "") {
-      return res.status(400).json({ error: "Tên điểm đến là bắt buộc" });
+    if (!name || !location_id) {
+      return res
+        .status(400)
+        .json({ error: "Tên điểm đến và Location là bắt buộc" });
     }
 
     const location = await Location.findByPk(location_id);
@@ -48,17 +104,15 @@ exports.createDestination = async (req, res) => {
       return res.status(400).json({ error: "Location không tồn tại" });
     }
 
-    // Nếu có file upload thì lấy filename
-    let image = null;
-    if (req.file) {
-      image = `/uploads/${req.file.filename}`; // đường dẫn ảnh
-    }
+    const image = req.file ? `/uploads/${req.file.filename}` : null;
 
     const destination = await Destination.create({
       name: name.trim(),
       description: description?.trim() || "",
       location_id,
       image,
+      status: status ?? true,
+      featured: req.body.featured ?? false,
     });
 
     res.status(201).json({
@@ -71,24 +125,11 @@ exports.createDestination = async (req, res) => {
   }
 };
 
-// Lấy điểm đến theo location
-exports.getDestinationsByLocation = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const destinations = await Destination.findAll({ where: { location_id: id } });
-
-    res.json(destinations);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-
 // Cập nhật điểm đến
 exports.updateDestination = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, location_id } = req.body;
+    const { name, description, location_id, status, featured } = req.body;
 
     const destination = await Destination.findByPk(id);
     if (!destination) {
@@ -100,11 +141,11 @@ exports.updateDestination = async (req, res) => {
       if (!location) {
         return res.status(400).json({ error: "Location không tồn tại" });
       }
+      destination.location_id = location_id;
     }
 
-    // Nếu có upload ảnh mới
     if (req.file) {
-      // Xóa ảnh cũ nếu tồn tại
+      // Xóa ảnh cũ
       if (destination.image) {
         const oldPath = path.join(__dirname, "..", destination.image);
         if (fs.existsSync(oldPath)) {
@@ -114,9 +155,17 @@ exports.updateDestination = async (req, res) => {
       destination.image = `/uploads/${req.file.filename}`;
     }
 
-    destination.name = name || destination.name;
-    destination.description = description || destination.description;
-    destination.location_id = location_id || destination.location_id;
+    destination.name = name?.trim() || destination.name;
+    destination.description = description?.trim() || destination.description;
+
+    if (status !== undefined) {
+      destination.status = status; // cập nhật status nếu có gửi lên
+    }
+
+    if (featured !== undefined) {
+      destination.featured = featured;
+    }
+
 
     await destination.save();
 
@@ -140,7 +189,6 @@ exports.deleteDestination = async (req, res) => {
       return res.status(404).json({ error: "Destination không tồn tại" });
     }
 
-    // Xóa ảnh trong thư mục nếu có
     if (destination.image) {
       const oldPath = path.join(__dirname, "..", destination.image);
       if (fs.existsSync(oldPath)) {
@@ -150,11 +198,58 @@ exports.deleteDestination = async (req, res) => {
 
     await destination.destroy();
 
-    res.json({
-      success: true,
-      message: "Xóa điểm đến thành công",
-    });
+    res.json({ success: true, message: "Xóa điểm đến thành công" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+exports.getDestinationsByLocation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const destinations = await Destination.findAll({
+      where: { location_id: id }
+    });
+
+    res.json({ success: true, data: destinations });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// Lấy danh sách điểm đến nổi bật theo category (Trong nước / Quốc tế)
+exports.getFeaturedDestinations = async (req, res) => {
+  try {
+    const { categoryId } = req.query;
+    // categoryId = 1 (trong nước) | 2 (quốc tế)
+
+    const destinations = await Destination.findAll({
+      where: { featured: 1, status: 1 },
+      include: [
+        {
+          model: Location,
+          attributes: ["id", "name"],
+          include: [
+            {
+              model: Category,
+              as: "fixedCategory",
+              attributes: ["id", "name"],
+              where: categoryId ? { id: categoryId } : undefined,
+              required: true, // ⚡ ép INNER JOIN
+            },
+          ],
+          required: true, // ⚡ ép phải có Location
+        },
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+
+
+    res.json({ success: true, data: destinations });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
