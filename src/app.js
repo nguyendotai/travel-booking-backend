@@ -1,35 +1,51 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const { sequelize } = require("./models"); // chỉ dùng 1 sequelize duy nhất
 const path = require("path");
+const { sequelize } = require("./models");
 
 const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes");
 const tourRoutes = require("./routes/tourRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const locationRoutes = require("./routes/locationRoutes");
 const hotelRoutes = require("./routes/hotelRoutes");
 const destinationRoutes = require("./routes/destinationRoutes");
-// const bookingRoutes = require("./routes/bookingRoutes");
-// const paymentRoutes = require("./routes/paymentRoutes");
+const bookingRoutes = require("./routes/bookingRoutes");
+const departureRoutes = require("./routes/departureRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
+const reviewRoutes = require("./routes/reviewRoutes");
 
-const app = express();  
+const app = express();
+
 app.use(cors());
+
+// ⚠️ KHÔNG dùng express.raw ở đây
 app.use(express.json());
+
+// Static folder
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
+// API routes
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/tours", tourRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api/hotels", hotelRoutes);
+app.use("/api/bookings", bookingRoutes);
 app.use("/api/destinations", destinationRoutes);
-// app.use("/api/bookings", bookingRoutes);
-// app.use("/api/payments", paymentRoutes);
+app.use("/api/departures", departureRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/reviews", reviewRoutes);
 
-sequelize.sync()
+// 🚀 Khởi chạy server
+sequelize
+  .sync()
   .then(() => {
     console.log("✅ Database synced");
-    app.listen(process.env.PORT, () => console.log(`🚀 Server running on port ${process.env.PORT}`));
+    app.listen(process.env.PORT, () =>
+      console.log(`🚀 Server running on port ${process.env.PORT}`)
+    );
   })
-  .catch(err => console.error("❌ Sync error:", err));
+  .catch((err) => console.error("❌ Sync error:", err));

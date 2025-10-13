@@ -4,7 +4,7 @@ const Location = require("../models/Location");
 exports.getAllHotel = async (req, res) => {
   try {
     const hotels = await Hotel.findAll({
-      include: [{ model: Location, attributes: ["id", "name"] }]
+      include: [{ model: Location, as: "locations", attributes: ["id", "name"] }]
     });
     res.json({ success: true, data: hotels });
   } catch (err) {

@@ -32,6 +32,11 @@ const Tour = sequelize.define("Tour", {
     type: DataTypes.ENUM("draft", "active", "inactive", "completed"),
     defaultValue: "draft"
   },
+   departureId: {
+    type: DataTypes.BIGINT,
+    allowNull: true,
+    comment: "Khóa ngoại tới bảng Departure"
+  },
   tourStatus: {
     type: DataTypes.VIRTUAL,
     get() {

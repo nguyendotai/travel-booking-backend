@@ -56,7 +56,10 @@ exports.getLocationById = async (req, res) => {
     try {
         const location = await Location.findByPk(req.params.id);
         if (!location) return res.status(404).json({ error: "Không có địa điểm" });
-        res.json(location);
+        res.json({
+            success: true,
+            data: location
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -91,18 +94,23 @@ exports.getLocationsByFixedCategory = async (req, res) => {
 };
 
 
-// Cập nhật location
+// updateLocation
 exports.updateLocation = async (req, res) => {
     try {
         const location = await Location.findByPk(req.params.id);
         if (!location) return res.status(404).json({ error: "Không có địa điểm" });
 
         await location.update(req.body);
-        res.json(location);
+        res.json({
+            success: true,
+            data: location,
+            message: "Cập nhật địa điểm thành công"
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
-}
+};
+
 
 // Xoá location
 exports.deleteLocation = async (req, res) => {

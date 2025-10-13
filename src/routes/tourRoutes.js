@@ -3,13 +3,15 @@ const express = require("express");
 const router = express.Router();
 const {
   getAllTours,
-  getTourById,
+  getTourBySlug,
   createTour,
   updateTour,
   deleteTour,
   getToursByCategory,
   getToursByFixedCategory,
-  getHotDeals
+  getHotDeals,
+  searchTours,
+  getToursByDestination
 } = require("../controllers/tourController");
 
 const { adminMiddleware, authMiddleware } = require("../middlewares/authMiddleware");
@@ -19,10 +21,12 @@ router.get("/", getAllTours);
 router.get("/category/:categoryId", getToursByCategory);
 router.get("/fixed-category/:slug", getToursByFixedCategory);
 router.get("/hot-deals", getHotDeals);
-router.get("/:id", getTourById);
+router.get("/search", searchTours);
+router.get("/destination/:destinationId", getToursByDestination);
+router.get("/:slug", getTourBySlug);
 
 router.post("/", authMiddleware, adminMiddleware, upload.single("image"), createTour);
-router.put("/:id", authMiddleware, adminMiddleware, upload.single("image"), updateTour);
+router.put("/:slug", authMiddleware, adminMiddleware, upload.single("image"), updateTour);
 router.delete("/:id", authMiddleware, adminMiddleware, deleteTour);
 
 module.exports = router;
