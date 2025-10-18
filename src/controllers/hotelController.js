@@ -53,6 +53,18 @@ exports.createHotel = async (req, res) => {
   }
 };
 
+exports.deleteHotel = async (req, res) => {
+  try{
+    const hotel = await Hotel.findByPk(req.params.id);
+    if(!hotel) return res.status(404).json({ error: "Không có khách sạn" });
+
+    await hotel.destroy();
+    res.json({ message: "Xóa khách sạn thành công" });
+  }catch(err){
+    res.status(500).json({ err: err.message });
+  }
+}
+
 exports.getHotelsByLocation = async (req, res) => {
   try {
     const { id } = req.params;
