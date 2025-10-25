@@ -16,6 +16,6 @@ const TourDayDestination = sequelize.define("TourDayDestination", {
     comment: "Khóa ngoại tới bảng Destination"
   },
   order: { type: DataTypes.INTEGER, defaultValue: 1 } // Thứ tự tham quan
-}, { timestamps: true });
+}, { timestamps: true, tableName: "tourdaydestinations" });
 
 module.exports = TourDayDestination;

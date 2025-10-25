@@ -74,7 +74,7 @@ const Tour = sequelize.define("Tour", {
     defaultValue: false,
     comment: "Đánh dấu tour hot deal"
   }
-}, { timestamps: true });
+}, { timestamps: true, tableName: "tours" });
 
 Tour.slugify = slugify;
 

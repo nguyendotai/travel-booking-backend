@@ -4,6 +4,7 @@ const { authMiddleware, adminMiddleware } = require("../middlewares/authMiddlewa
 const reviewController = require("../controllers/reviewController");
 
 // Người dùng
+router.get("/",  reviewController.getAllReviews)
 router.post("/tour/:tourId", authMiddleware, reviewController.createReview);
 router.get("/my", authMiddleware, reviewController.getMyReviews);
 router.put("/:id", authMiddleware, reviewController.updateReview);

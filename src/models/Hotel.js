@@ -8,6 +8,6 @@ const Hotel = sequelize.define("Hotel", {
   description: { type: DataTypes.TEXT },
   status: { type: DataTypes.BOOLEAN },
   rating: { type: DataTypes.FLOAT },
-}, { timestamps: true });
+}, { timestamps: true, tableName: "hotels" });
 
 module.exports = Hotel;

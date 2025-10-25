@@ -6,6 +6,6 @@ const Payment = sequelize.define("Payment", {
   amount: { type: DataTypes.DECIMAL(12,2), allowNull: false },
   method: { type: DataTypes.ENUM("credit_card","paypal","bank_transfer","cash"), allowNull: false },
   status: { type: DataTypes.ENUM("pending","paid","failed"), defaultValue: "pending" },
-}, { timestamps: true });
+}, { timestamps: true, tableName: "payments" });
 
 module.exports = Payment;

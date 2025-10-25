@@ -15,7 +15,7 @@ const {
 } = require("../controllers/tourController");
 
 const { adminMiddleware, authMiddleware } = require("../middlewares/authMiddleware");
-const upload = require("../middlewares/uploadMiddleware");
+const upload = require("../middlewares/uploadCloudinary");
 
 router.get("/", getAllTours);
 router.get("/category/:categoryId", getToursByCategory);

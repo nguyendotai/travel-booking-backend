@@ -1,4 +1,5 @@
 const Category = require("../models/Category");
+const cloudinary = require("../config/cloudinary");
 const fs = require("fs");
 const path = require("path");
 
@@ -61,11 +62,6 @@ exports.createCategory = async (req, res) => {
             });
         }
 
-        let image = null;
-        if (req.file) {
-            image = `/uploads/${req.file.filename}`;
-        }
-
         const category = await Category.create({
             name: name.trim(),
             slug: Category.slugify(name), // tạo slug tự động
@@ -77,7 +73,7 @@ exports.createCategory = async (req, res) => {
                 typeof status !== "undefined"
                     ? status === "true" || status === true
                     : true,
-            image,
+            image: req.file ? req.file.path : null,
         });
 
         res.status(201).json({
@@ -119,13 +115,18 @@ exports.updateCategory = async (req, res) => {
         }
 
         if (req.file) {
-            if (category.image) {
-                const oldPath = path.join(__dirname, "../uploads", path.basename(category.image));
-                if (fs.existsSync(oldPath)) {
-                    fs.unlinkSync(oldPath);
-                }
+            // Xóa ảnh cũ trên Cloudinary nếu có
+            if (category.image && category.image.includes("cloudinary.com")) {
+                const publicId = category.image.split("/").pop().split(".")[0];
+                await cloudinary.uploader.destroy(`travel-booking/${publicId}`);
             }
-            category.image = `/uploads/${req.file.filename}`;
+
+            // Upload ảnh mới
+            const result = await cloudinary.uploader.upload(req.file.path, {
+                folder: "travel-booking/categories",
+            });
+
+            category.image = result.secure_url;
         }
 
         category.name = name || category.name;

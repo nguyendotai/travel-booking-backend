@@ -2,7 +2,7 @@ const express = require("express");
 const { getAllCategory, getCategoryById, getFixedCategories, createCategory, updateCategory, deleteCategory } = require("../controllers/categoryController");
 const {authMiddleware, adminMiddleware} = require("../middlewares/authMiddleware");
 const router = express.Router();
-const upload  = require("../middlewares/uploadMiddleware")
+const upload  = require("../middlewares/uploadCloudinary")
 
 router.get("/", getAllCategory);
 router.get("/fixed", getFixedCategories)

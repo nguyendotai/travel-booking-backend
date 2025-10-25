@@ -6,6 +6,6 @@ const Booking = sequelize.define("Booking", {
   quantity: { type: DataTypes.INTEGER, defaultValue: 1 },
   total_price: { type: DataTypes.DECIMAL(12,2), allowNull: false },
   status: { type: DataTypes.ENUM("pending","confirmed","cancelled"), defaultValue: "pending" },
-}, { timestamps: true });
+}, { timestamps: true, tableName: "bookings" });
 
 module.exports = Booking;

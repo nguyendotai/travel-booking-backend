@@ -7,6 +7,6 @@ const Location = sequelize.define("Location", {
   country: { type: DataTypes.STRING(100) },
   description: { type: DataTypes.TEXT },
   status: { type: DataTypes.BOOLEAN },
-}, { timestamps: true });
+}, { timestamps: true, tableName: "locations" });
 
 module.exports = Location;

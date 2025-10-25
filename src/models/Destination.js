@@ -15,6 +15,6 @@ const Destination = sequelize.define("Destination", {
     allowNull: false,
     defaultValue: false,
   },
-}, { timestamps: true });
+}, { timestamps: true, tableName: "destinations" });
 
 module.exports = Destination;

@@ -9,6 +9,6 @@ const User = sequelize.define("User", {
   role: { type: DataTypes.ENUM("user", "admin", "seller"), defaultValue: "user" },
   phone: { type: DataTypes.STRING(20) },
   isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
-}, { timestamps: true });
+}, { timestamps: true, tableName: "users" });
 
 module.exports = User;

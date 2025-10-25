@@ -14,6 +14,6 @@ const Departure = sequelize.define("Departure", {
         type: DataTypes.STRING(200),
         allowNull: false,
     }
-}, { timestamps: true });
+}, { timestamps: true, tableName: "departures" });
 
 module.exports = Departure;

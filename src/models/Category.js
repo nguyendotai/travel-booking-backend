@@ -27,7 +27,7 @@ const Category = sequelize.define(
     startDate: { type: DataTypes.DATE, allowNull: true },
     endDate: { type: DataTypes.DATE, allowNull: true },
   },
-  { timestamps: true }
+  { timestamps: true, tableName: "categories" }
 );
 
 // Gắn hàm slugify vào model để tái sử dụng

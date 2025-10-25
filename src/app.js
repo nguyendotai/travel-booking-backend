@@ -40,12 +40,19 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/reviews", reviewRoutes);
 
 // 🚀 Khởi chạy server
-sequelize
-  .sync()
+sequelize.authenticate()
   .then(() => {
-    console.log("✅ Database synced");
+    console.log("✅ Database connected");
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-
   })
-  .catch((err) => console.error("❌ Sync error:", err));
+  .catch((err) => console.error("❌ Database connection error:", err));
+
+// sequelize
+//   .sync()
+//   .then(() => {
+//     console.log("✅ Database synced");
+//     const PORT = process.env.PORT || 5000;
+//     app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+//   })
+//   .catch((err) => console.error("❌ Sync error:", err));

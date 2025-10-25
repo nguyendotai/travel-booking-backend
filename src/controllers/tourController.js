@@ -10,6 +10,7 @@ const TourDayDestination = require("../models/TourDayDestination");
 const TourDestination = require("../models/TourDestination");
 const { sequelize } = require("../models");
 const { Op } = require("sequelize");
+const cloudinary = require("../config/cloudinary");
 const fs = require("fs");
 const path = require("path");
 
@@ -198,7 +199,7 @@ exports.createTour = async (req, res) => {
         endDate,
         duration,
         capacity: Number(capacity),
-        image: req.file ? `/uploads/${req.file.filename}` : null,
+        image: req.file ? req.file.path : null,
         status,
         hotel_id: hotel_id ? Number(hotel_id) : null,
         fixedCategoryId,
@@ -269,100 +270,77 @@ exports.createTour = async (req, res) => {
   }
 };
 
-// Cập nhật tour
 exports.updateTour = async (req, res) => {
-  const t = await sequelize.transaction();
   try {
+    const { id } = req.params;
     const {
-      name, description, price, startDate, endDate, capacity, status,
-      fixedCategoryId, locationId, hotel_id, discount, isHotDeal,
-      optionalCategoryIds, destinationIds, days
+      name,
+      description,
+      price,
+      startDate,
+      endDate,
+      duration,
+      capacity,
+      status,
+      tourStatus,
+      categoryId,
+      locationId,
     } = req.body;
 
-    // Tìm tour theo slug
-    const tour = await Tour.findOne({ where: { slug: req.params.slug } });
-    if (!tour) return res.status(404).json({ error: "Tour không tồn tại" });
-
-    // Update thông tin cơ bản
-    if (name) {
-      tour.name = name;
-      tour.slug = Tour.slugify(name); // nếu muốn update slug theo name mới
+    const tour = await Tour.findByPk(id);
+    if (!tour) {
+      return res.status(404).json({ success: false, error: "Không tìm thấy tour" });
     }
-    tour.description = description ?? tour.description;
-    tour.price = price !== undefined ? Number(price) : tour.price;
-    tour.startDate = startDate ?? tour.startDate;
-    tour.endDate = endDate ?? tour.endDate;
-    tour.duration = (startDate && endDate) ? Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) : tour.duration;
-    tour.capacity = capacity !== undefined ? Number(capacity) : tour.capacity;
-    tour.status = status ?? tour.status;
-    tour.discount = discount !== undefined ? Number(discount) : tour.discount;
-    if (isHotDeal !== undefined) {
-      tour.isHotDeal = isHotDeal === "true" || isHotDeal === true;
-    }
-    tour.fixedCategoryId = fixedCategoryId ?? tour.fixedCategoryId;
-    tour.location_id = locationId ?? tour.location_id;
-    tour.hotel_id = hotel_id ?? tour.hotel_id;
 
+    // ✅ Nếu có file ảnh mới
     if (req.file) {
-      tour.image = `/uploads/${req.file.filename}`;
-    }
-
-    await tour.save({ transaction: t });
-
-    // Update optional categories
-    if (optionalCategoryIds && Array.isArray(optionalCategoryIds)) {
-      const optionalCats = await Category.findAll({ where: { id: optionalCategoryIds, type: "optional" } });
-      await tour.setOptionalCategories(optionalCats, { transaction: t });
-    }
-
-    // Update destinations
-    if (destinationIds && Array.isArray(destinationIds)) {
-      const dests = await Destination.findAll({ where: { id: destinationIds } });
-      await tour.setDestinations(dests, { transaction: t });
-    }
-
-    // Update TourDay
-    if (days && Array.isArray(days)) {
-      const oldDays = await TourDay.findAll({ where: { tourId: tour.id } });
-      for (const oldDay of oldDays) {
-        await TourDayDestination.destroy({ where: { tourDayId: oldDay.id }, transaction: t });
-      }
-      await TourDay.destroy({ where: { tourId: tour.id }, transaction: t });
-
-      for (const day of days) {
-        const tourDay = await TourDay.create({
-          tourId: tour.id,
-          dayNumber: day.dayNumber,
-          title: day.title,
-          description: day.description
-        }, { transaction: t });
-
-        if (day.destinationIds && Array.isArray(day.destinationIds)) {
-          for (let i = 0; i < day.destinationIds.length; i++) {
-            await TourDayDestination.create({
-              tourDayId: tourDay.id,
-              destinationId: day.destinationIds[i],
-              order: i + 1
-            }, { transaction: t });
-          }
+      // 🧹 Xóa ảnh cũ trên Cloudinary (nếu có)
+      if (tour.image && tour.image.includes("cloudinary.com")) {
+        try {
+          const publicId = tour.image.split("/").pop().split(".")[0];
+          await cloudinary.uploader.destroy(`travel-booking/${publicId}`);
+        } catch (error) {
+          console.warn("⚠️ Không thể xoá ảnh cũ Cloudinary:", error.message);
         }
       }
+
+      // ☁️ Upload ảnh mới lên Cloudinary
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "travel-booking/tours",
+      });
+
+      // Gán đường dẫn mới
+      tour.image = result.secure_url;
+
+      // Xóa file tạm local sau khi upload
+      fs.unlinkSync(req.file.path);
     }
 
-    await t.commit();
+    // ✅ Cập nhật các trường khác
+    tour.name = name || tour.name;
+    tour.description = description || tour.description;
+    tour.price = price || tour.price;
+    tour.startDate = startDate || tour.startDate;
+    tour.endDate = endDate || tour.endDate;
+    tour.duration = duration || tour.duration;
+    tour.capacity = capacity || tour.capacity;
+    tour.categoryId = categoryId || tour.categoryId;
+    tour.locationId = locationId || tour.locationId;
+    tour.status = typeof status !== "undefined" ? (status === "true" || status === true) : tour.status;
+    tour.tourStatus = tourStatus || tour.tourStatus;
+
+    await tour.save();
 
     res.json({
       success: true,
-      data: { ...tour.toJSON(), salePrice: tour.salePrice }
+      message: "Cập nhật tour thành công",
+      data: tour,
     });
   } catch (err) {
-    await t.rollback();
-    console.error(err);
-    res.status(500).json({ error: err.message });
+    console.error("❌ Lỗi updateTour:", err);
+    res.status(500).json({ success: false, error: err.message });
   }
 };
-
-
 // Xóa tour
 exports.deleteTour = async (req, res) => {
   try {

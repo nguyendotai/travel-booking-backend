@@ -11,6 +11,6 @@ const TourDay = sequelize.define("TourDay", {
   dayNumber: { type: DataTypes.INTEGER, allowNull: false },
   title: { type: DataTypes.STRING(200) },
   description: { type: DataTypes.TEXT }
-}, { timestamps: true });
+}, { timestamps: true, tableName: "tourdays" });
 
 module.exports = TourDay;
