@@ -49,7 +49,7 @@ sequelize.authenticate()
   .catch((err) => console.error("❌ Database connection error:", err));
 
 // sequelize
-//   .sync()
+//   .sync({ alter: true })
 //   .then(() => {
 //     console.log("✅ Database synced");
 //     const PORT = process.env.PORT || 5000;

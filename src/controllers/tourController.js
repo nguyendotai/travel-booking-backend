@@ -272,7 +272,7 @@ exports.createTour = async (req, res) => {
 
 exports.updateTour = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { slug } = req.params;
     const {
       name,
       description,
@@ -287,7 +287,7 @@ exports.updateTour = async (req, res) => {
       locationId,
     } = req.body;
 
-    const tour = await Tour.findByPk(id);
+    const tour = await Tour.findOne({ where: { slug } });
     if (!tour) {
       return res.status(404).json({ success: false, error: "Không tìm thấy tour" });
     }
@@ -326,7 +326,16 @@ exports.updateTour = async (req, res) => {
     tour.capacity = capacity || tour.capacity;
     tour.categoryId = categoryId || tour.categoryId;
     tour.locationId = locationId || tour.locationId;
-    tour.status = typeof status !== "undefined" ? (status === "true" || status === true) : tour.status;
+    if (typeof status !== "undefined") {
+      // Nếu frontend gửi "true"/"false" hoặc 1/0, bạn có thể quy đổi thành enum
+      if (status === "true" || status === true || status === 1) {
+        tour.status = "active";
+      } else if (status === "false" || status === false || status === 0) {
+        tour.status = "inactive";
+      } else if (["draft", "active", "inactive", "completed"].includes(status)) {
+        tour.status = status;
+      }
+    }
     tour.tourStatus = tourStatus || tour.tourStatus;
 
     await tour.save();
